@@ -1,6 +1,6 @@
 name: Build Windows app
 
-# Every push to main builds Snowly.exe and publishes it as a GitHub Release named after
+# Every push to main checks the Windows API bindings, builds Snowly.exe and publishes it as a GitHub Release named after
 # the version in package.json (v1.0.0, ...). Bump "version" to start a new release;
 # pushes without a bump refresh the zip on the current release.
 on:
@@ -25,6 +25,9 @@ jobs:
 
       - name: Install
         run: npm ci
+
+      - name: Check Windows API bindings
+        run: node scripts/check-winapi.js
 
       - name: Package Snowly.exe
         run: npm run pack

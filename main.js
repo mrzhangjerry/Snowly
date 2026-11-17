@@ -1,7 +1,7 @@
-// Snowly — a transparent, click-through, always-on-top overlay that covers the
-// desktop work area. Its bottom edge is the top edge of the Windows taskbar, so the
-// snow piles up right on top of the taskbar.
-const { app, BrowserWindow, screen, Tray, Menu, nativeImage, globalShortcut } = require('electron');
+// Snowly: a transparent layer that covers the desktop work area and sits directly above
+// the desktop, behind every app window. Its bottom edge is the top edge of the taskbar,
+// so snow piles up on the taskbar; it also piles up on top of each app window.
+const { app, BrowserWindow, screen, Tray, Menu, nativeImage, globalShortcut, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -10,7 +10,7 @@ app.setAppUserModelId('Snowly');
 
 const { execFile } = require('child_process');
 
-const defaults = { snow: 2, plow: true, plowSize: 1, paused: false, wallpaper: true, prevWallpaper: null, wallpaperVersion: 0 };
+const defaults = { snow: 2, plow: true, plowSize: 1, paused: false, wallpaper: true, prevWallpaper: null, wallpaperStamp: null };
 let settings = { ...defaults };
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
 function loadSettings() {
@@ -53,7 +53,7 @@ function createWindow() {
     focusable: false,
     skipTaskbar: true,
     hasShadow: false,
-    alwaysOnTop: true,
+    alwaysOnTop: false,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -62,8 +62,9 @@ function createWindow() {
       backgroundThrottling: false,
     },
   });
-  win.setIgnoreMouseEvents(true);          // clicks go straight through to the desktop
-  win.setAlwaysOnTop(true, 'screen-saver');
+  // Clicks go straight through, except on snowballs (the page asks for clicks while the
+  // pointer is over one). `forward` keeps mouse-move events coming so it can tell.
+  win.setIgnoreMouseEvents(true, { forward: true });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   win.once('ready-to-show', () => {
     win.showInactive();
@@ -75,7 +76,15 @@ function createWindow() {
 // ---------------- wallpaper ----------------
 const isWin = process.platform === 'win32';
 const WALL_NAME = 'snowly-wallpaper';
-const WALLPAPER_VERSION = 2;   // bump when assets/wallpaper.jpg changes so it gets re-applied
+
+// The wallpaper is a plain file anyone can swap: wallpaper.png next to Snowly.exe
+// (or in the project folder when running from source).
+function wallpaperPath() {
+  return app.isPackaged ? path.join(path.dirname(process.execPath), 'wallpaper.png') : path.join(__dirname, 'wallpaper.png');
+}
+function wallpaperStamp() {
+  try { const st = fs.statSync(wallpaperPath()); return `${st.size}-${Math.round(st.mtimeMs)}`; } catch { return null; }
+}
 
 function powershell(script) {
   return new Promise((resolve, reject) => {
@@ -100,23 +109,18 @@ async function setWindowsWallpaper(file) {
   await powershell(script);
 }
 
-// Windows can't read files inside app.asar, so copy the bundled wallpaper to a real file first.
-function installWallpaperFile() {
-  const file = path.join(app.getPath('userData'), `${WALL_NAME}.jpg`);
-  fs.writeFileSync(file, fs.readFileSync(path.join(__dirname, 'assets', 'wallpaper.jpg')));
-  return file;
-}
-
 let wallpaperBusy = false;
 async function applyWallpaper() {
   if (!isWin || wallpaperBusy) return;
   wallpaperBusy = true;
   try {
     const current = await getCurrentWallpaper().catch(() => '');
-    if (current && !current.includes(WALL_NAME) && !current.includes('snow-cabin-wallpaper')) settings.prevWallpaper = current;
-    const file = installWallpaperFile();
+    const file = wallpaperPath();
+    if (!fs.existsSync(file)) throw new Error(`wallpaper.png not found: ${file}`);
+    const isOurs = (p) => !p || p.includes(WALL_NAME) || p.includes('snow-cabin-wallpaper') || path.resolve(p) === path.resolve(file);
+    if (!isOurs(current)) settings.prevWallpaper = current;
     await setWindowsWallpaper(file);
-    settings.wallpaper = true; settings.wallpaperVersion = WALLPAPER_VERSION; saveSettings();
+    settings.wallpaper = true; settings.wallpaperStamp = wallpaperStamp(); saveSettings();
   } catch (e) {
     notify('Could not set the wallpaper', String(e.message || e).slice(0, 200));
   } finally {
@@ -139,6 +143,38 @@ async function restoreWallpaper() {
 
 function notify(title, content) {
   if (tray && isWin) tray.displayBalloon({ title, content, iconType: 'info' });
+}
+
+// ---------------- app windows (Windows only) ----------------
+// Every 50 ms: send the page where the app windows are, so snow can pile up on them.
+// Every 250 ms: make sure the Snowly layer is still directly above the desktop.
+let winapi = null;
+try { winapi = require('./winapi'); if (!winapi.init()) winapi = null; } catch (e) { winapi = null; console.warn('Window tracking unavailable:', e.message); }
+
+function ownHandle() {
+  const b = win.getNativeWindowHandle();
+  return b.length >= 8 ? Number(b.readBigUInt64LE(0)) : b.readUInt32LE(0);
+}
+
+function startWindowTracking() {
+  if (!winapi) return;
+  const own = ownHandle();
+  setInterval(() => {
+    if (!win || !win.isVisible()) return;
+    try {
+      const wa = workArea();
+      const list = winapi.listWindows(own).map((r) => {
+        const d = screen.screenToDipRect(null, { x: r.x, y: r.y, width: r.w, height: r.h });
+        return { id: r.id, x: d.x - wa.x, y: d.y - wa.y, w: d.width, h: d.height, snow: !r.maximized && d.y > wa.y + 4 };
+      });
+      win.webContents.send('windows', list);
+    } catch (e) { /* a window closed mid-scan; try again next tick */ }
+  }, 50);
+  setInterval(() => {
+    if (!win || !win.isVisible()) return;
+    try { winapi.keepAboveDesktop(own); } catch (e) { /* ignore */ }
+  }, 250);
+  try { winapi.keepAboveDesktop(own); } catch (e) { /* ignore */ }
 }
 
 function loginItemOptions() {
@@ -189,7 +225,7 @@ function buildMenu() {
 
 function toggleVisible() {
   if (!win) return;
-  if (win.isVisible()) win.hide(); else { win.showInactive(); win.setAlwaysOnTop(true, 'screen-saver'); }
+  if (win.isVisible()) win.hide(); else win.showInactive();
 }
 
 app.whenReady().then(() => {
@@ -204,15 +240,21 @@ app.whenReady().then(() => {
 
   globalShortcut.register('Control+Alt+S', toggleVisible);
 
-  // set the winter wallpaper on first run (or when a new wallpaper ships with an update)
-  if (settings.wallpaper && settings.wallpaperVersion !== WALLPAPER_VERSION) applyWallpaper();
+  // Set the wallpaper on first run, and again whenever wallpaper.png is replaced.
+  if (settings.wallpaper && settings.wallpaperStamp !== wallpaperStamp()) applyWallpaper();
+  setInterval(() => {
+    const stamp = wallpaperStamp();
+    if (settings.wallpaper && stamp && stamp !== settings.wallpaperStamp) applyWallpaper();
+  }, 5000);
+
+  // Snowballs: the page turns clicks on while the pointer is over a snowball.
+  ipcMain.on('interactive', (_e, on) => { if (win) win.setIgnoreMouseEvents(!on, { forward: true }); });
+
+  startWindowTracking();
 
   screen.on('display-metrics-changed', placeWindow);
   screen.on('display-added', placeWindow);
   screen.on('display-removed', placeWindow);
-
-  // Some apps grab the top-most slot; quietly take it back now and then.
-  setInterval(() => { if (win && win.isVisible()) win.setAlwaysOnTop(true, 'screen-saver'); }, 10000);
 });
 
 app.on('second-instance', () => { if (win) { win.showInactive(); } });
@@ -220,4 +262,4 @@ app.on('will-quit', () => globalShortcut.unregisterAll());
 app.on('window-all-closed', () => app.quit());
 
 // exported for automated checks
-module.exports = { installWallpaperFile };
+module.exports = { wallpaperPath, wallpaperStamp };

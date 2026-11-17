@@ -1,16 +1,19 @@
 {
   "name": "snowly",
   "productName": "Snowly",
-  "version": "1.1.0",
-  "description": "Winter wallpaper for Windows, with snow piling up on the taskbar and a little plow pushing it away.",
+  "version": "1.2.0",
+  "description": "Winter desktop for Windows: wallpaper, snow piling up on the taskbar and on every window, snowballs, and a little snowplow.",
   "main": "main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
-    "pack": "electron-packager . Snowly --platform=win32 --arch=x64 --out=dist --overwrite --asar --icon=assets/icon.ico --ignore=\"^/dist\" --ignore=\"^/web\" --ignore=\"^/docs\" --ignore=\"^/\\.github\""
+    "pack": "electron-packager . Snowly --platform=win32 --arch=x64 --out=dist --overwrite --asar.unpackDir=node_modules/koffi --icon=assets/icon.ico --ignore=\"^/dist\" --ignore=\"^/web\" --ignore=\"^/docs\" --ignore=\"^/\\.github\" --ignore=\"^/scripts\" --ignore=\"^/wallpaper\\.png\" && node scripts/copy-wallpaper.js"
   },
   "devDependencies": {
     "@electron/packager": "^18.3.6",
     "electron": "^33.2.1"
+  },
+  "dependencies": {
+    "koffi": "^2.9.0"
   }
 }
