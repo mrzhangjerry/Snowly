@@ -1,8 +1,8 @@
 {
   "name": "snowly",
   "productName": "Snowly",
-  "version": "1.0.0",
-  "description": "Snowy cabin wallpaper for Windows, with snow piling up on the taskbar and a little plow pushing it away.",
+  "version": "1.1.0",
+  "description": "Winter wallpaper for Windows, with snow piling up on the taskbar and a little plow pushing it away.",
   "main": "main.js",
   "private": true,
   "scripts": {

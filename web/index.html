@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -11,7 +11,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;background:#070b26;color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
   user-select:none;-webkit-user-select:none}
 canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 #scene{z-index:0}
@@ -121,7 +121,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 <div id="menubar">
   <span>❄</span><b>Files</b><span class="opt">File</span><span class="opt">Edit</span><span class="opt">View</span><span class="opt">Window</span><span>Help</span>
   <span class="sp"></span>
-  <button id="snowBtn" title="切换雪量">❄ 雪量：中</button>
+  <button id="snowBtn" title="Change snowfall">❄ Snow: Medium</button>
   <span id="clock"></span>
 </div>
 
@@ -162,7 +162,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
   </div>
   <div class="body">
     <div class="rail">
-      <div class="ic">⫴</div><div class="ic">＋</div>
+      <div class="ic">⫴</div><div class="ic">+</div>
       <div class="t" style="background:linear-gradient(135deg,#4b5cff,#b9a6ff)"></div>
       <div class="t" style="background:linear-gradient(135deg,#7a5230,#e1b77c)"></div>
       <div class="t" style="background:linear-gradient(135deg,#d8c8a0,#8b6f43)"></div>
@@ -179,7 +179,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
         </div>
       </div>
       <div class="ctrl">
-        <button id="play" title="播放">▶</button>
+        <button id="play" title="Play">▶</button>
         <span class="g">⤮</span><span class="ok">✓</span><span class="g">⇩</span>
       </div>
       <div id="tracks">
@@ -209,7 +209,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
   <div class="app" style="background:rgba(255,255,255,.15)">🗑️</div>
 </div>
 
-<div id="hint">拖动窗口可以抖落积雪 · 双击标题栏堆雪人 · 点 ▶ 播放音乐</div>
+<div id="hint">Shake a window to knock the snow off · Double-click a title bar to build a snowman · Press ▶ for music</div>
 
 <canvas id="fx"></canvas>
 
@@ -642,7 +642,7 @@ function deposit(s,col,amt){
 function colH(s,x){const i=clamp(Math.round((x-s.r.left)/STEP),0,s.cols.length-1);return s.cols[i];}
 
 // flakes
-let snowLevel=1;const levels=[0.45,1,1.9],levelNames=['小','中','大'];
+let snowLevel=1;const levels=[0.45,1,1.9],levelNames=['Light','Medium','Heavy'];
 const flakes=[];
 function targetFlakes(){return Math.round(clamp(W*H/4200,120,520)*levels[snowLevel]*(reduce?0.35:1));}
 function newFlake(top){
@@ -667,8 +667,8 @@ function buildSnowman(w,x){
   const s=w._surf;if(!s)return;
   const i=Math.round((x-s.r.left)/STEP);let sum=0;
   for(let j=i-7;j<=i+7;j++)if(s.cols[j]!==undefined)sum+=s.cols[j];
-  if(sum/15<5){toast('这里积雪不够，再等它下一会儿 ❄');return;}
-  if(s.items.length>=8){toast('雪人已经够多啦 ☃');return;}
+  if(sum/15<5){toast('Not enough snow here yet. Give it a minute ❄');return;}
+  if(s.items.length>=8){toast('That is plenty of snowmen ☃');return;}
   for(let j=i-7;j<=i+7;j++)if(s.cols[j]!==undefined)s.cols[j]*=0.4;
   addItem(s,(x-s.r.left)/s.r.width,'snowman',{sc:0.85+rand()*0.35,hat:rand()<0.5,grow:0});
 }
@@ -873,9 +873,9 @@ function updateProgress(){
 
 /* ======================= UI bits ======================= */
 const snowBtn=document.getElementById('snowBtn');
-snowBtn.addEventListener('click',()=>{snowLevel=(snowLevel+1)%3;snowBtn.textContent='❄ 雪量：'+levelNames[snowLevel];});
+snowBtn.addEventListener('click',()=>{snowLevel=(snowLevel+1)%3;snowBtn.textContent='❄ Snow: '+levelNames[snowLevel];});
 const clock=document.getElementById('clock');
-function tickClock(){const d=new Date();clock.textContent=d.toLocaleDateString('zh-CN',{month:'short',day:'numeric',weekday:'short'})+'  '+d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});}
+function tickClock(){const d=new Date();clock.textContent=d.toLocaleDateString('en-US',{month:'short',day:'numeric',weekday:'short'})+'  '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}
 tickClock();setInterval(tickClock,10000);
 const hint=document.getElementById('hint');let hintT;
 function toast(msg){hint.textContent=msg;hint.style.opacity=1;clearTimeout(hintT);hintT=setTimeout(()=>hint.style.opacity=0,3500);}

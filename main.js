@@ -10,7 +10,7 @@ app.setAppUserModelId('Snowly');
 
 const { execFile } = require('child_process');
 
-const defaults = { snow: 2, plow: true, plowSize: 1, paused: false, wallpaper: true, prevWallpaper: null, wallpaperSize: null };
+const defaults = { snow: 2, plow: true, plowSize: 1, paused: false, wallpaper: true, prevWallpaper: null, wallpaperVersion: 0 };
 let settings = { ...defaults };
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
 function loadSettings() {
@@ -74,7 +74,8 @@ function createWindow() {
 
 // ---------------- wallpaper ----------------
 const isWin = process.platform === 'win32';
-const WALL_NAME = 'snow-cabin-wallpaper';
+const WALL_NAME = 'snowly-wallpaper';
+const WALLPAPER_VERSION = 2;   // bump when assets/wallpaper.jpg changes so it gets re-applied
 
 function powershell(script) {
   return new Promise((resolve, reject) => {
@@ -99,25 +100,11 @@ async function setWindowsWallpaper(file) {
   await powershell(script);
 }
 
-// Render the cabin scene at the screen's real pixel size in a hidden window and save it as PNG.
-async function renderWallpaperPng() {
-  const d = screen.getPrimaryDisplay();
-  const w = Math.round(d.size.width * d.scaleFactor);
-  const h = Math.round(d.size.height * d.scaleFactor);
-  const hidden = new BrowserWindow({ show: false, width: 400, height: 300, webPreferences: { contextIsolation: true } });
-  try {
-    await hidden.loadFile(path.join(__dirname, 'renderer', 'wallpaper.html'), { query: { static: '1', w: String(w), h: String(h) } });
-    for (let i = 0; i < 100; i++) {
-      if (await hidden.webContents.executeJavaScript('!!window.__ready')) break;
-      await new Promise((r) => setTimeout(r, 100));
-    }
-    const dataUrl = await hidden.webContents.executeJavaScript('window.__png()');
-    const file = path.join(app.getPath('userData'), `${WALL_NAME}-${w}x${h}.png`);
-    fs.writeFileSync(file, Buffer.from(dataUrl.split(',')[1], 'base64'));
-    return { file, size: `${w}x${h}` };
-  } finally {
-    hidden.destroy();
-  }
+// Windows can't read files inside app.asar, so copy the bundled wallpaper to a real file first.
+function installWallpaperFile() {
+  const file = path.join(app.getPath('userData'), `${WALL_NAME}.jpg`);
+  fs.writeFileSync(file, fs.readFileSync(path.join(__dirname, 'assets', 'wallpaper.jpg')));
+  return file;
 }
 
 let wallpaperBusy = false;
@@ -126,12 +113,12 @@ async function applyWallpaper() {
   wallpaperBusy = true;
   try {
     const current = await getCurrentWallpaper().catch(() => '');
-    if (current && !current.includes(WALL_NAME)) settings.prevWallpaper = current;
-    const { file, size } = await renderWallpaperPng();
+    if (current && !current.includes(WALL_NAME) && !current.includes('snow-cabin-wallpaper')) settings.prevWallpaper = current;
+    const file = installWallpaperFile();
     await setWindowsWallpaper(file);
-    settings.wallpaper = true; settings.wallpaperSize = size; saveSettings();
+    settings.wallpaper = true; settings.wallpaperVersion = WALLPAPER_VERSION; saveSettings();
   } catch (e) {
-    notify('设置壁纸失败', String(e.message || e).slice(0, 200));
+    notify('Could not set the wallpaper', String(e.message || e).slice(0, 200));
   } finally {
     wallpaperBusy = false;
     if (tray) buildMenu();
@@ -143,18 +130,11 @@ async function restoreWallpaper() {
   if (!isWin) return;
   const prev = settings.prevWallpaper;
   if (prev && fs.existsSync(prev)) {
-    try { await setWindowsWallpaper(prev); } catch (e) { notify('恢复壁纸失败', String(e.message || e).slice(0, 200)); }
+    try { await setWindowsWallpaper(prev); } catch (e) { notify('Could not restore the wallpaper', String(e.message || e).slice(0, 200)); }
   } else {
-    notify('没有找到原来的壁纸', '请在 Windows 设置 → 个性化 → 背景 里重新选择壁纸。');
+    notify('Previous wallpaper not found', 'Pick a wallpaper in Settings > Personalization > Background.');
   }
   if (tray) buildMenu();
-}
-
-// redo the image if the resolution changed
-function wallpaperSizeChanged() {
-  const d = screen.getPrimaryDisplay();
-  const size = `${Math.round(d.size.width * d.scaleFactor)}x${Math.round(d.size.height * d.scaleFactor)}`;
-  return size !== settings.wallpaperSize;
 }
 
 function notify(title, content) {
@@ -169,40 +149,40 @@ function loginItemOptions() {
 
 function buildMenu() {
   const set = (patch) => { Object.assign(settings, patch); saveSettings(); pushSettings(); buildMenu(); };
-  const snowNames = ['关（只保留积雪）', '小', '中', '大'];
-  const sizeNames = [[0.8, '小'], [1, '中'], [1.3, '大']];
+  const snowNames = ['Off (keep the snow on the taskbar)', 'Light', 'Medium', 'Heavy'];
+  const sizeNames = [[0.8, 'Small'], [1, 'Medium'], [1.3, 'Large']];
   const autostart = app.getLoginItemSettings(loginItemOptions()).openAtLogin;
   const menu = Menu.buildFromTemplate([
-    { label: '❄ Snowly 任务栏积雪', enabled: false },
+    { label: '❄ Snowly', enabled: false },
     { type: 'separator' },
     {
-      label: '雪量',
+      label: 'Snowfall',
       submenu: snowNames.map((n, i) => ({ label: n, type: 'radio', checked: settings.snow === i, click: () => set({ snow: i }) })),
     },
-    { label: '铲雪车', type: 'checkbox', checked: settings.plow, click: (m) => set({ plow: m.checked }) },
+    { label: 'Snowplow', type: 'checkbox', checked: settings.plow, click: (m) => set({ plow: m.checked }) },
     {
-      label: '铲雪车大小',
+      label: 'Snowplow size',
       submenu: sizeNames.map(([v, n]) => ({ label: n, type: 'radio', checked: settings.plowSize === v, click: () => set({ plowSize: v }) })),
     },
-    { label: '清空积雪', click: () => win && win.webContents.send('command', 'clear') },
+    { label: 'Clear snow', click: () => win && win.webContents.send('command', 'clear') },
     { type: 'separator' },
     {
-      label: wallpaperBusy ? '雪夜小屋壁纸（生成中…）' : '雪夜小屋壁纸', type: 'checkbox', checked: settings.wallpaper, enabled: isWin && !wallpaperBusy,
+      label: wallpaperBusy ? 'Winter wallpaper (applying…)' : 'Winter wallpaper', type: 'checkbox', checked: settings.wallpaper, enabled: isWin && !wallpaperBusy,
       click: (m) => { if (m.checked) applyWallpaper(); else restoreWallpaper(); buildMenu(); },
     },
-    { label: '恢复我原来的壁纸', enabled: isWin && settings.wallpaper, click: () => restoreWallpaper() },
+    { label: 'Restore my previous wallpaper', enabled: isWin && settings.wallpaper, click: () => restoreWallpaper() },
     { type: 'separator' },
-    { label: '暂停', type: 'checkbox', checked: settings.paused, click: (m) => set({ paused: m.checked }) },
+    { label: 'Pause', type: 'checkbox', checked: settings.paused, click: (m) => set({ paused: m.checked }) },
     {
-      label: '显示 / 隐藏（Ctrl+Alt+S）',
+      label: 'Show / hide (Ctrl+Alt+S)',
       click: toggleVisible,
     },
     {
-      label: '开机自动启动', type: 'checkbox', checked: autostart,
+      label: 'Start with Windows', type: 'checkbox', checked: autostart,
       click: (m) => { app.setLoginItemSettings({ openAtLogin: m.checked, ...loginItemOptions() }); buildMenu(); },
     },
     { type: 'separator' },
-    { label: '退出', click: () => app.quit() },
+    { label: 'Quit', click: () => app.quit() },
   ]);
   tray.setContextMenu(menu);
 }
@@ -218,19 +198,14 @@ app.whenReady().then(() => {
 
   const icon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'tray.png'));
   tray = new Tray(icon);
-  tray.setToolTip('Snowly 任务栏积雪 — 点击打开菜单');
+  tray.setToolTip('Snowly — click for options');
   tray.on('click', () => tray.popUpContextMenu());
   buildMenu();
 
   globalShortcut.register('Control+Alt+S', toggleVisible);
 
-  // put the snowy cabin on the desktop (first run, or the resolution changed)
-  if (settings.wallpaper && (wallpaperSizeChanged() || !settings.prevWallpaper)) applyWallpaper();
-  let wt;
-  screen.on('display-metrics-changed', () => {
-    clearTimeout(wt);
-    wt = setTimeout(() => { if (settings.wallpaper && wallpaperSizeChanged()) applyWallpaper(); }, 1500);
-  });
+  // set the winter wallpaper on first run (or when a new wallpaper ships with an update)
+  if (settings.wallpaper && settings.wallpaperVersion !== WALLPAPER_VERSION) applyWallpaper();
 
   screen.on('display-metrics-changed', placeWindow);
   screen.on('display-added', placeWindow);
@@ -245,4 +220,4 @@ app.on('will-quit', () => globalShortcut.unregisterAll());
 app.on('window-all-closed', () => app.quit());
 
 // exported for automated checks
-module.exports = { renderWallpaperPng };
+module.exports = { installWallpaperFile };

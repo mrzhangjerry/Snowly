@@ -1,29 +1,29 @@
 # Snowly ❄
 
-Windows 冬季桌面：雪夜小木屋壁纸、满屏飘雪、积在任务栏顶上的雪，还有一台小黄铲雪车把雪推成雪堆。
+A winter desktop for Windows: a 4K snowy village wallpaper, snow falling across the screen, snow piling up on top of the taskbar, and a little yellow snowplow that pushes it into drifts.
 
-![预览](docs/preview.png)
+![Preview](docs/preview.png)
 
-## 功能
+## Features
 
-- **雪夜小屋壁纸**：首次运行时按你屏幕的真实分辨率生成高清壁纸，并自动设为 Windows 桌面壁纸。可以一键恢复你原来的壁纸
-- **满屏飘雪**：雪花分远近两层，大小、速度和飘动各不相同
-- **任务栏积雪**：雪花落到任务栏顶上就积起来。坡太陡时雪会往下滑，所以雪堆是自然的斜坡
-- **铲雪车推雪**：铲子挡住的雪都被推到前面，越堆越高，车也越推越慢。雪堆高过铲子后，雪块会从顶上滚下来。推到屏幕边缘就留下一个雪堆，然后倒车、掉头往回推
-- **不影响使用**：覆盖层透明，鼠标点击直接穿透，也不会挡住任务栏本身
+- **4K winter wallpaper.** On first run Snowly sets a 3840 × 2160 snowy village scene as your Windows wallpaper. Your previous wallpaper is remembered so you can switch back with one click.
+- **Falling snow.** Flakes come in two depth layers, each with its own size, speed and drift.
+- **Snow on the taskbar.** Flakes that reach the taskbar stay there. Snow slides when a slope gets too steep, so the drifts form natural slopes and mounds.
+- **A snowplow that really pushes.** Snow in front of the blade builds into a growing wedge, and the plow slows down as the load gets heavier. Once the pile is taller than the blade, clumps tumble over the top and roll ahead. At the edge of the screen the plow leaves a drift behind, backs up, turns around and plows the other way.
+- **Stays out of your way.** The overlay is transparent and click-through, and it never covers the taskbar itself.
 
-## 下载（不需要装 Node.js）
+## Download (no Node.js needed)
 
-到仓库的 **Releases** 页面下载最新版的 `Snowly-win-x64.zip`，解压后双击 `Snowly.exe`。
+Download `Snowly-win-x64.zip` from the latest **Release**, unzip it and run `Snowly.exe`.
 
-每次推送到 `main` 都会自动打包，并发布成以 `package.json` 版本号命名的 Release（如 `v1.0.0`）。要发新版本，改 `version` 再推送即可。
+Every push to `main` builds the app and publishes a release named after the version in `package.json` (for example `v1.1.0`). To ship a new release, bump `version` and push.
 
-> 程序没有代码签名，第一次运行时 Windows SmartScreen 可能拦截。点「更多信息」→「仍要运行」即可。
+> The app is not code-signed, so Windows SmartScreen may warn you the first time. Click **More info → Run anyway**.
 
-## 从源码运行
+## Run from source
 
-1. 安装 Node.js LTS：https://nodejs.org
-2. 在项目文件夹里打开终端，运行：
+1. Install Node.js LTS from https://nodejs.org
+2. Open a terminal in the project folder and run:
 
 ```bash
 npm install
@@ -33,65 +33,65 @@ npm install
 npm start
 ```
 
-之后双击 `start-hidden.vbs` 可以不带命令行窗口启动。
+Afterwards you can double-click `start-hidden.vbs` to start Snowly without a console window.
 
-自己打包 exe：
+To build the `.exe` yourself:
 
 ```bash
 npm run pack
 ```
 
-输出在 `dist\Snowly-win32-x64\Snowly.exe`。
+The app is written to `dist\Snowly-win32-x64\Snowly.exe`.
 
-## 托盘菜单
+## Tray menu
 
-右下角托盘区的 ❄ 图标：
+Click the ❄ icon in the notification area:
 
-| 菜单 | 作用 |
+| Item | What it does |
 |---|---|
-| 雪量 | 关 / 小 / 中 / 大。选「关」时不再下雪，只保留积雪和铲雪车 |
-| 铲雪车 / 铲雪车大小 | 开关铲雪车，调大小 |
-| 清空积雪 | 一键清空 |
-| 雪夜小屋壁纸 | 勾选时设为壁纸，取消勾选时恢复原来的壁纸 |
-| 恢复我原来的壁纸 | 换回第一次运行前的壁纸 |
-| 暂停 | 冻结画面 |
-| 显示 / 隐藏 | 快捷键 **Ctrl + Alt + S** |
-| 开机自动启动 | 登录 Windows 时自动运行 |
-| 退出 | 关闭程序 |
+| Snowfall | Off / Light / Medium / Heavy. "Off" stops new snow but keeps the snow on the taskbar and the plow |
+| Snowplow / Snowplow size | Turn the plow on or off, change its size |
+| Clear snow | Remove all snow from the taskbar |
+| Winter wallpaper | Checked: use the winter wallpaper. Unchecked: go back to your previous wallpaper |
+| Restore my previous wallpaper | Switch back to the wallpaper you had before Snowly |
+| Pause | Freeze the animation |
+| Show / hide | Also **Ctrl + Alt + S** |
+| Start with Windows | Launch Snowly when you sign in |
+| Quit | Close Snowly |
 
-设置保存在 `%APPDATA%\snowly\settings.json`。
+Settings are saved in `%APPDATA%\snowly\settings.json`.
 
-## 动态壁纸（可选）
+## Use your own wallpaper
 
-Windows 的普通壁纸只能是静态图片，所以小屋的串灯和烟囱冒烟在桌面上是静止的。如果想让它们也动起来，可以安装免费的 [Lively Wallpaper](https://www.rocksdanister.com/lively/)，把 `renderer/wallpaper.html` 拖进去，再在 Snowly 托盘里取消勾选「雪夜小屋壁纸」。
+Replace `assets/wallpaper.jpg` with any image (3840 × 2160 recommended), then raise `WALLPAPER_VERSION` in `main.js` so the new image is applied on the next start.
 
-## 网页版
+## Web version
 
-`web/index.html` 是最早的网页版：仿 Mac 桌面，雪会积在窗口顶上，窗口上有雪人。用浏览器直接打开即可。
+`web/index.html` is the original browser version: a Mac-style desktop where snow settles on top of the windows and snowmen stand on them. Open it in any browser.
 
-## 项目结构
+## Project layout
 
 ```
-main.js               透明置顶覆盖窗口、托盘菜单、快捷键、开机自启、设置壁纸
-preload.js            主进程和画面之间传设置
-renderer/snow.js      积雪物理和绘制（飘雪、积雪高度、雪的滑落、铲雪车推雪）
-renderer/wallpaper.js 雪夜小屋壁纸的绘制
-renderer/wallpaper.html + wallpaper-page.js  生成壁纸图片 / 动态壁纸页面
-renderer/index.html   覆盖层页面（用浏览器打开就是带模拟任务栏的预览）
-web/index.html        网页版
-.github/workflows/    自动打包 Windows 版
+main.js              Transparent always-on-top overlay, tray menu, shortcut, autostart, wallpaper
+preload.js           Passes settings from the main process to the page
+renderer/snow.js     Snow physics and drawing (falling snow, snow height map, sliding, the plow)
+renderer/index.html  Overlay page. Opened in a browser it shows a preview with a mock taskbar
+assets/wallpaper.jpg 4K wallpaper
+web/index.html       Browser version
+.github/workflows/   Builds the Windows app and publishes releases
 ```
 
-浏览器预览：打开 `renderer/index.html`，地址后加 `?fast=4` 可以 4 倍速播放。
+Browser preview: open `renderer/index.html`. Add `?fast=4` to the address to play it at 4× speed.
 
-想调手感，就改 `renderer/snow.js` 顶部的这几个参数：
+To change how the snow behaves, edit the constants at the top of `renderer/snow.js`:
 
-- `REPOSE`：雪堆坡度
-- `SNOW_RATE`：积雪速度
-- `BLADE_H`：铲子高度
+- `REPOSE`: how steep a drift can get
+- `SNOW_RATE`: how fast snow builds up
+- `BLADE_H`: blade height
 
-## 已知限制
+## Known limitations
 
-- 只支持主显示器
-- 任务栏放在屏幕侧边或顶部时，雪会积在屏幕最底部
-- 全屏玩游戏或看视频时雪也会飘在上面，按 Ctrl + Alt + S 可以隐藏
+- Primary monitor only.
+- If the taskbar is on the side or top of the screen, snow collects along the bottom edge of the screen instead.
+- Snow also falls over full-screen games and videos. Press Ctrl + Alt + S to hide it.
+- The wallpaper was upscaled to 4K from a 1671 × 941 image with an AI super-resolution model (EDSR ×4). It is sharper than a plain resize, but it does not have the detail of a native 4K image.
