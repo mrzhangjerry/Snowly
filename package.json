@@ -1,0 +1,16 @@
+{
+  "name": "snowly",
+  "productName": "Snowly",
+  "version": "1.0.0",
+  "description": "Snowy cabin wallpaper for Windows, with snow piling up on the taskbar and a little plow pushing it away.",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-packager . Snowly --platform=win32 --arch=x64 --out=dist --overwrite --asar --icon=assets/icon.ico --ignore=\"^/dist\" --ignore=\"^/web\" --ignore=\"^/docs\" --ignore=\"^/\\.github\""
+  },
+  "devDependencies": {
+    "@electron/packager": "^18.3.6",
+    "electron": "^33.2.1"
+  }
+}
