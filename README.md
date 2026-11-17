@@ -14,9 +14,9 @@ Windows 冬季桌面：雪夜小木屋壁纸、满屏飘雪、积在任务栏顶
 
 ## 下载（不需要装 Node.js）
 
-到仓库的 **Releases** 页面下载 `Snowly-win-x64.zip`，解压后双击 `Snowly.exe`。
+到仓库的 **Releases** 页面下载最新版的 `Snowly-win-x64.zip`，解压后双击 `Snowly.exe`。
 
-每次推送到 `main` 也会自动打包一份：**Actions** → 最新一次运行 → 页面底部的 **Artifacts** → `Snowly-win-x64`。
+每次推送到 `main` 都会自动打包，并发布成以 `package.json` 版本号命名的 Release（如 `v1.0.0`）。要发新版本，改 `version` 再推送即可。
 
 > 程序没有代码签名，第一次运行时 Windows SmartScreen 可能拦截。点「更多信息」→「仍要运行」即可。
 

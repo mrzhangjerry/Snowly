@@ -1,7 +1,8 @@
 name: Build Windows app
 
-# Every push to main builds Snowly.exe and attaches it to the run (Actions tab → run → Artifacts).
-# Pushing a tag like v1.0.1 also publishes a GitHub Release with the zip.
+# Every push to main builds Snowly.exe and publishes it as a GitHub Release named after
+# the version in package.json (v1.0.0, ...). Bump "version" to start a new release;
+# pushes without a bump refresh the zip on the current release.
 on:
   push:
     branches: [main]
@@ -38,9 +39,17 @@ jobs:
           name: Snowly-win-x64
           path: Snowly-win-x64.zip
 
+      - name: Read version
+        id: ver
+        shell: pwsh
+        run: echo "version=$(node -p "require('./package.json').version")" >> $env:GITHUB_OUTPUT
+
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', steps.ver.outputs.version) }}
+          name: Snowly ${{ steps.ver.outputs.version }}
+          target_commitish: ${{ github.sha }}
           files: Snowly-win-x64.zip
+          overwrite_files: true
           generate_release_notes: true
